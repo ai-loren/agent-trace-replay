@@ -88,8 +88,18 @@ test('unknown event types are shown as they are, and turn failures are errors', 
     { t: 0, type: 'memory.write', key: 'owner', value: 'loren' },
     { t: 1, type: 'turn.failed', turn: 2, error: 'context window exceeded' },
   )).events);
-  assert.deepEqual(plain([steps[0].status, steps[0].title, steps[0].text]), ['info', 'memory.write', '{"key":"owner","value":"loren"}']);
+  assert.deepEqual(plain([steps[0].status, steps[0].title, steps[0].text]), ['info', 'memory.write', 'key=owner value=loren']);
   assert.deepEqual(plain([steps[1].status, steps[1].title, steps[1].text]), ['error', '第 2 轮失败', 'context window exceeded']);
+});
+
+test('tool inputs read as a command, a path or key=value pairs', () => {
+  const textOfCall = (input) => tool.timeline([{ t: 0, type: 'tool.call', id: 'a', name: 'x', input }])[0].text;
+  assert.equal(textOfCall({ args: ['job', 'runs', 'get', 'r-1'] }), 'job runs get r-1');
+  assert.equal(textOfCall({ command: 'git status' }), 'git status');
+  assert.equal(textOfCall({ path: 'configs/a.yaml' }), 'configs/a.yaml');
+  assert.equal(textOfCall({ suite: 'math-1000', range: [400, 600], dryRun: true }), 'suite=math-1000 range=[400,600] dryRun=true');
+  assert.equal(textOfCall({ path: 'a.yaml', replace: { a: 'b' } }), '{"path":"a.yaml","replace":{"a":"b"}}', 'nested objects fall back to JSON');
+  assert.equal(textOfCall({ text: 'x'.repeat(200) }).length, 90, 'long inputs are cut to 90 characters');
 });
 
 test('text that looks like HTML stays text', () => {

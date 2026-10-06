@@ -120,11 +120,15 @@
     return { events };
   }
 
+  const flat = (value) => value === null || ['string', 'number', 'boolean'].includes(typeof value);
   const compact = (value) => {
     if (value && Array.isArray(value.args)) return value.args.join(' ');
     if (value && typeof value.command === 'string') return value.command;
     if (value && typeof value.path === 'string' && Object.keys(value).length === 1) return value.path;
-    const text = JSON.stringify(value) ?? '';
+    const pairs = value && typeof value === 'object' && !Array.isArray(value) && Object.values(value).every((entry) => flat(entry) || (Array.isArray(entry) && entry.every(flat)));
+    const text = pairs
+      ? Object.entries(value).map(([key, entry]) => `${key}=${typeof entry === 'string' ? entry : JSON.stringify(entry)}`).join(' ')
+      : JSON.stringify(value) ?? '';
     return text.length > 90 ? `${text.slice(0, 89)}…` : text;
   };
   const textOf = (value) => (typeof value === 'string' ? value : value === undefined ? '' : JSON.stringify(value, null, 2));
